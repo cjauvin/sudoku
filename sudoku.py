@@ -10,15 +10,14 @@ class Sudoku:
         self.cols = defaultdict(set)
         self.boxes = defaultdict(set)
         self.size = int(math.sqrt(len(conf))) # note that the number of squares is size^2
-        self.n_calls = 0        
         self.recursion_depth = 0
         for i in range(self.size):
             for j in range(self.size):
                 v = conf[(i * self.size) + j]
                 if v.isdigit():
                     self.set(i, j, int(v))                
-#        self.prev = None
-        self.recursion_depth = 0
+        self.recursion_depth = 0 # was updated by init, needs to be reset
+        self.n_calls = 0        
         self.graph_file = open(graph_file, 'w') if graph_file else None
         if self.graph_file:
             self.graph_file.write('digraph g {\n')
@@ -26,9 +25,10 @@ class Sudoku:
 
     def set(self, i, j, v):
         self.grid[i][j] = v
-        self.rows[i].add(v)
-        self.cols[j].add(v)
-        self.boxes[self.box(i, j)].add(v)
+        if v > 0:
+            self.rows[i].add(v)
+            self.cols[j].add(v)
+            self.boxes[self.box(i, j)].add(v)
         self.recursion_depth += 1
 
     def unset(self, i, j):
@@ -285,12 +285,10 @@ class Sudoku:
                 print '---------+-----------+---------'
 
     def isSolved(self):
-        n = defaultdict(int)
-        for i in range(self.size):
-            for j in range(self.size):
-                n[self.grid[i][j]] += 1
-        return dict(n) == dict(zip(range(1, self.size+1), 
-                                   [self.size]*self.size))
+        rows_ok = len(self.rows) == self.size and all([len(self.rows[i]) == self.size for i in self.rows])
+        cols_ok = len(self.cols) == self.size and all([len(self.cols[j]) == self.size for j in self.cols])
+        boxes_ok = len(self.boxes) == self.size and all([len(self.boxes[k]) == self.size for k in self.boxes])
+        return rows_ok and cols_ok and boxes_ok
 
     def box(self, i, j):
         if self.size == 9:
@@ -311,13 +309,13 @@ class Sudoku:
 #s =  '0000001006008000003008011065743200004000400001803106024820040003'
 
 # 52 calls [wikipedia]
-s = '530070000600195000098000060800060003400803001700020006060000280000419005000080079'
+#s = '530070000600195000098000060800060003400803001700020006060000280000419005000080079'
 
 # 54 calls
 #s = "080007095010020000309581000500000300400000006006000007000762409000050020820400060"
 
 # 8.8K calls, naive: 300522 calls, 3.407 secs
-#s = "120400300300010050006000100700090000040603000003002000500080700007000005000000098"
+s = "120400300300010050006000100700090000040603000003002000500080700007000005000000098"
 
 # 11K calls [wikipedia "near worst case"], naive: 69175317 calls in 803.392 secs
 #s = "..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9"
@@ -328,21 +326,24 @@ s = '530070000600195000098000060800060003400803001700020006060000280000419005000
 # should yield 6 solutions
 #s = "300000080001093000040780003093800012000040000520006790600021040000530900030000051"
 
+# http://zonkedyak.blogspot.com/2006/11/worlds-hardest-sudoku-puzzle-al.html
+#s = '100007090030020008009600500005300900010080002600004000300000010040000007007000300'
+
 #S = Sudoku(s, '6x6_solveNaive.dot')
 S = Sudoku(s, 'graph.dot')
 #print
 #S.show()
 
-#S.solve()
+S.solve()
 #S.solveNaive()
 #S.solveRandom()
 #S.solveMoreConstrained()
 #S.solveWithLessRecursion()
-S.solveMoreConstrainedWithLessRecursion()
+#S.solveMoreConstrainedWithLessRecursion()
 
 assert S.isSolved()
 #print; print
-#S.show()
+S.show()
 
 S.graph_file.write('}\n')
 S.graph_file.close()
